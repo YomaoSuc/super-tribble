@@ -1,3 +1,16 @@
+<?php
+  session_start();
+  // echo $_SESSION['name'];
+  if(!isset($_SESSION['name'])) {
+    echo("<h2>Вы не вошли в аккаунт! <br /> Через 3 секунды вы будете перенаправлены на страницу логина</h2> <br />");
+    echo("<a href='login.html'>Войти в аккаунт</a>");
+    // Правильный вариант
+    // header('Location: login.html');
+    // Ещё одинн способ
+    echo("<meta http-equiv='refresh' content='3; url=login.html'></meta>");
+    die();
+  }
+?>
 <!doctype html>
 <html lang="ru">
   <head>
@@ -47,6 +60,7 @@
         let z = x - y;
         document.getElementById("z").value = z;
       }
+
       function calculateMultiply() {
         let x = parseFloat(document.getElementById("x").value);
         let y = parseFloat(document.getElementById("y").value);
@@ -56,6 +70,7 @@
     </script>
   </head>
   <body>
+    <a href='logout.php'>Выйти из системы</a>
     <h1>Калькулятор</h1>
     <div class="field">
       <label for="x">X</label>
@@ -65,9 +80,9 @@
       <label for="y">Y</label>
       <input class="number" id="y" />
     </div>
-    <button onclick="calculateSum(); this.style.backgroundColor = 'green'">+</button>
-    <button onclick="calculateMinus(); this.style.backgroundColor = 'pink';">-</button>
-    <button onclick="calculateMultiply(); this.style.backgroundColor = 'lightblue';">*</button>
+    <button onclick="calculateSum()">+</button>
+    <button onclick="calculateMinus()">-</button>
+    <button onclick="calculateMultiply()">*</button>
     <div class="field">
       <label for="z">Z</label>
       <input id="z" />
