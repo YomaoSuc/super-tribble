@@ -1,40 +1,37 @@
 <?php
 session_start();
 
-$correctLogin = 'admin';
-$correctPassword = '12345';
+$host = 'localhost';
+$username = 'root';
+$password_db = '';
+$db = 'calc';
 
-$login = $_POST['login'] ?? '';
-$pwd = $_POST['pwd'] ?? '';
+$mysqli = new mysqli($host, $username, $password_db, $db);
 
-$isCorrect = (
-    $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    is_string($login) &&
-    is_string($pwd) &&
-    $login === $correctLogin &&
-    $pwd === $correctPassword
-);
+$login = $_POST['login'];
+$pwd = $_POST['pwd'];
 
-if ($isCorrect) {
-    session_regenerate_id(true);
-    $_SESSION['name'] = $login;
+$query = "SELECT name, pwd_hash, login FROM user WHERE login = ?";
+
+$result = $mysqli->prepare($query);
+$result->bind_param("s", $login);
+$result->execute();
+
+$data = $result->get_result();
+$user_data = $data->fetch_assoc();
+
+$password = isset($user_data['pwd_hash']) ? $user_data['pwd_hash'] : '';
+
+if(password_verify($pwd, $password)) {
+    $_SESSION['name'] = $user_data['name'];
+    $_SESSION['login'] = $user_data['login'];
+    echo "<h1>Добро пожаловать, " . $_SESSION['name'] . "!</h1>";
+    echo("<meta http-equiv='refresh' content='3; url=calc.php' />");
 }
-?>
+else {
+    echo "<h1>Неправильный логин или пароль!</h1>";
+    echo("<meta http-equiv='refresh' content='3; url=login.html'></meta>");
+}
 
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результат входа</title>
-</head>
-<body>
-    <?php if ($isCorrect): ?>
-        <h1>Добро пожаловать, admin!</h1>
-        <p>Авторизация работает.</p>
-    <?php else: ?>
-        <h1>Неправильный логин или пароль!</h1>
-        <a href="login.html">Вернуться к форме</a>
-    <?php endif; ?>
-</body>
-</html>
+$result->close();
+$mysqli->close();
