@@ -1,5 +1,6 @@
 <?php
     session_start();
+    require '../config.php';
 
     if(!isset($_SESSION['name'])) {
         http_response_code(401);
@@ -26,12 +27,7 @@
         exit;
     }
 
-    $host = 'localhost';
-    $username = 'root';
-    $password_db = '';
-    $db = 'calc';
-
-    $mysqli = new mysqli($host, $username, $password_db, $db);
+    $mysqli = new mysqli($db_host, $db_username, $db_password, $db_name);
 
     if($mysqli->connect_error) {
         die('Ошибка подключения к БД');

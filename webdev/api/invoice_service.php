@@ -1,5 +1,7 @@
 <?php
     session_start();
+    require '../config.php';
+
     if(!isset($_SESSION['name'])) {
         http_response_code(401);
         echo('Вы не вошли в аккаунт!');
@@ -8,8 +10,8 @@
 
     $allowed = ['operation_date', 'operation', 'x', 'y', 'z'];
 
-    $date_from = '2000-01-01'; // очень давно
-    $date_to = '2100-01-01'; // очень нескоро
+    $date_from = '2000-01-01';
+    $date_to = '2100-01-01';
 
     if(!empty($_GET['date_from'])) {
         $date_from = $_GET['date_from'];
@@ -41,12 +43,12 @@
         $dir = $_GET['dir'];
     }
 
-    $host = 'localhost';
-    $username = 'root';
-    $password_db = '';
-    $db = 'calc';
+    $limit = $app_limit;
+    $allowed_limits = [5, 10, 20];
 
-    $limit = 5;
+    if(isset($_GET['limit']) && in_array((int) $_GET['limit'], $allowed_limits)) {
+        $limit = (int) $_GET['limit'];
+    }
 
     $page = 1;
 
@@ -54,30 +56,44 @@
         $page = (int) $_GET['page'];
     }
 
-    if ($page < 1) {
+    if($page < 1) {
         $page = 1;
     }
 
     $offset = ($page - 1) * $limit;
 
-    $mysqli = new mysqli($host, $username, $password_db, $db);
+    $mysqli = new mysqli($db_host, $db_username, $db_password, $db_name);
 
-    // Обработка ошибки подключения к БД
     if($mysqli->connect_error) {
         die('Ошибка подключения к БД');
     }
 
     $login = $_SESSION['login'];
 
+    $queryCount = "SELECT COUNT(*) AS total FROM operation WHERE login = ? AND DATE(operation_date) BETWEEN ? AND ? AND z BETWEEN ? AND ?";
+
+    $resultCount = $mysqli->prepare($queryCount);
+    $resultCount->bind_param('sssdd', $login, $date_from, $date_to, $z_min, $z_max);
+    $resultCount->execute();
+    $row = $resultCount->get_result()->fetch_assoc();
+    $total = $row['total'];
+    $resultCount->close();
+
+    $totalPages = ceil($total / $limit);
+
+    if($totalPages == 0) {
+        $totalPages = 1;
+    }
+
+    $sum = $total * $price_per_op;
+
     $query = "SELECT operation_date, x, y, z, operation FROM operation WHERE login = ? AND DATE(operation_date) BETWEEN ? AND ? AND z BETWEEN ? AND ? ORDER BY $sort $dir LIMIT ? OFFSET ?";
 
     $result = $mysqli->prepare($query);
-    $result->bind_param('sssdddd', $login, $date_from, $date_to, $z_min, $z_max, $limit, $offset);
-
+    $result->bind_param('sssddii', $login, $date_from, $date_to, $z_min, $z_max, $limit, $offset);
     $result->execute();
 
     $calcs_db = $result->get_result();
-
     $calcs = array();
 
     while($row = $calcs_db->fetch_assoc()) {
@@ -87,4 +103,9 @@
     $result->close();
     $mysqli->close();
 
-    echo json_encode($calcs);
+    echo json_encode([
+        'calcs' => $calcs,
+        'total' => $total,
+        'totalPages' => $totalPages,
+        'sum' => $sum,
+    ]);
